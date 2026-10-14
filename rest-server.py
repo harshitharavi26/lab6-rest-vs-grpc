@@ -5,6 +5,8 @@ import jsonpickle
 from PIL import Image
 import io
 import argparse
+import base64
+import json
 
 # Initialize the Flask application
 app = Flask(__name__)
@@ -51,12 +53,47 @@ def rawimage():
 
 @app.route('/api/dotproduct', methods=['POST'])
 def dotproduct():
-    pass
+    r = request
+    try:
+        data = r.get_json()
+        a = data['a']
+        b = data['b']
+        if len(a) != len(b):
+            raise ValueError("vectors must be the same length")
+        response = {'dotproduct': sum(x * y for x, y in zip(a, b))}
+        status = 200
+    except Exception as e:
+        response = {'error': str(e)}
+        status = 400
+
+    response_pickled = jsonpickle.encode(response)
+    return Response(
+        response=response_pickled,
+        status=status,
+        mimetype="application/json"
+    )
 
 
 @app.route('/api/jsonimage', methods=['POST'])
 def jsonimage():
-    pass
+    r = request
+    try:
+        data = r.get_json()
+        img_bytes = base64.b64decode(data['image'])
+        img = Image.open(io.BytesIO(img_bytes))
+        response = {
+            'width': img.size[0],
+            'height': img.size[1]
+        }
+    except:
+        response = {'width': 0, 'height': 0}
+
+    response_pickled = jsonpickle.encode(response)
+    return Response(
+        response=response_pickled,
+        status=200,
+        mimetype="application/json"
+    )
 
 
 if __name__ == '__main__':
